@@ -7,6 +7,6 @@ agreements.
 
 ## Installing
 
-Prerequisites:
+Prerequisites on debian:
 
-apt-get install gcc gfortran cmake libfftw3-dev libnfft3-dev pgplot5 f2c libf2c2-dev libcfitsio3 libcfitsio3-dev
+apt-get install gcc gfortran cmake libfftw3-dev libnfft3-dev pgplot5 libcfitsio3 libcfitsio3-dev
