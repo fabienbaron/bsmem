@@ -1,0 +1,1 @@
+gcc -O3 bsmem.c random.c oifits.c interface.c read_fits.c bsmemf.f vector.f memsys4.f -lm -lfftw3 -lnfft3 -lcfitsio -lX11 -lpgplot -lcpgplot -lgfortran

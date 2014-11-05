@@ -1,0 +1,39 @@
+# Temporary files
+*~
+*.swp
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+
+# Compiled Dynamic libraries
+*.so
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+
+# Ignore files for Eclipse
+.project
+.metadata
+tmp/**
+tmp/**/*
+*.tmp
+*.bak
+*.swp
+*~.nib
+local.properties
+.classpath
+.settings/
+.loadpath
+
+# External tool builders
+.externalToolBuilders/
+
+# Locally stored "Eclipse launch configurations"
+*.launch
+
+# CDT-specific
+.cproject
