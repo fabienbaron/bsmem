@@ -3,7 +3,7 @@
  * The Contents of this file are made available subject to the terms
  * of the GNU Lesser General Public License:
  *
- * Copyright ( C ) 2002-2008 Fabien Baron, Hrobjartur Thorsteinsson
+ * Copyright ( C ) 2002-2014 Fabien Baron, David Buscher, Hrobjartur Thorsteinsson
  *
  * This file is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -29,7 +29,7 @@
  * History:   This is the original implementation of BSMEM created by David F. Buscher
  *       in Fortran in 1990, but rewritten ( with permission ) by
  *       Hrobjartur Thorsteinsson using the new memsys4 library in F.
- *       Fabien Baron took over development in mid 2005.
+ *       Fabien Baron took over development in mid 2004.
  *       C to Fortran translation and toy program provided by Steve Gull.
  */
 
@@ -48,6 +48,7 @@
  *     10/01/10 Forced normalization by introducing a zero flux powerspectrum. v1.4
  *     20/03/10 Added triple amplitude visu, minor fixes, waveband selection from commandline. v1.5
  *     13/09/11 Fixed memory leaks using cppcheck, fixed full elliptic approximation of bispectrum errors v1.6
+ *     10/11/14 Updated convexification based on WISARD equations
  */
 
 #include "bsmem.h"
@@ -1055,14 +1056,26 @@ int set_memsys_dataspace( float *st , int *kb , oi_data *data , RECONST_PARAMETE
 
     if(reconst_parameters->biserrtype == 1 )
       {
-	// Full elliptic approximation - Based on Meimon 2009 appendix E 2-3 or Meimon 2005 eq 14
+	// Full elliptic approximation - Initially based on Meimon 2009 appendix E 2-3 
+	// See also WISARD manual
+
 	if (i == 0)
-	  printf("Bispectrum noise:\tFull elliptic approximation \n");
+	  printf("Bispectrum noise:\tImproved elliptic approximation \n");
+
+
 	err_abs = reconst_parameters->t3ampa * data->bisamperr[ i ] + reconst_parameters->t3ampb ;
-	err_phi = square( ( reconst_parameters->t3phia * data->bisphserr[ i ] + reconst_parameters->t3phib ) * pi / 180.0 );
-	err_rad =  sqrt( 0.5 * ( square( data->bisamp[ i ] ) + square( err_abs ) ) * ( 1.0 + exp( - 2. * err_phi ))
-			 - square( data->bisamp[ i ] ) * exp( - err_phi ));
-	err_tan =  sqrt( 0.5 * ( square( data->bisamp[ i ] ) + square( err_abs ) ) * ( 1.0 - exp( - 2. * err_phi ))) ;
+	err_phi = (reconst_parameters->t3phia * data->bisphserr[ i ] + reconst_parameters->t3phib ) * pi / 180.0 ;
+
+	err_rad =  sqrt( 
+			0.5 * square( err_abs )          * square(1.+ exp(-2.*square(err_phi)))
+		      + 0.5 * square( data->bisamp[ i ]) * square(1.- exp(-square(err_phi)))
+		       );
+
+	err_tan =  sqrt( 
+			0.5 * square( err_abs )          * square(1.- exp(-2.*square(err_phi)))
+		      + 0.5 * square( data->bisamp[ i ]) * (1.- exp(-2.*square(err_phi)))
+			 );
+      
       }
     else 
       {
@@ -1091,15 +1104,11 @@ int set_memsys_dataspace( float *st , int *kb , oi_data *data , RECONST_PARAMETE
     // Set Bispectrum data, rotated by exp( -i*closure_data )
     //
     if(reconst_parameters->biserrtype == 1 )
-      {
-	// Full elliptic approximation 
-	st[ kb[ 20 ]+data->npow + 2 * i ] = data->bisamp[ i ] * exp( - square( 0.5 * err_phi ) )  ;
-      }
-    else
-      {
+	// Improved elliptic approximation 
+      st[ kb[ 20 ]+data->npow + 2 * i ] = data->bisamp[ i ] * (2.- exp( - 0.5*square(err_phi) ))  ;
+   else
 	// Approximation 1st order
         st[ kb[ 20 ] + data->npow + 2 * i ] = data->bisamp[ i ];
-      }
     
     st[ kb[ 20 ] + data->npow + 1 + 2 * i ] = 0.0;
 
