@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8)
-project(bsmem Fortran C)
+project(bsmem C Fortran)
 
 # Set this to the directory in which you want BSMEM installed if the default
 # location isn't acceptable.
