@@ -13,4 +13,4 @@ apt-get install gcc gfortran cmake libfftw3-dev libnfft3-dev pgplot5 libcfitsio3
 
 MEMSYS libraries:
 
-Please contact me at fbaron@gsu.edu to get the MEMSYS libraries required to run BSMEM.
+Please contact me at fbaron@gsu.edu to get the password for the MEMSYS library required to run BSMEM.
