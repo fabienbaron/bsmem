@@ -153,26 +153,26 @@ int get_oi_fits_data(RECONST_PARAMETERS* reconst_parameters, oi_data* data, int*
 									&&((wave.eff_wave[k]*billion)< reconst_parameters->maxband)
 							   &&(!(vis2.record[i].flag[k])))
 							{
-							  
+
 							      data->pow[data->npow] = (float)vis2.record[i].vis2data[k];
 							      data->powerr[data->npow] = (float)vis2.record[i].vis2err[k];
-							      
+
 							      data->uv[data->nuv].u = (float)(vis2.record[i].ucoord / wave.eff_wave[k]);
 							      data->uv[data->nuv].v = (float)(vis2.record[i].vcoord / wave.eff_wave[k]);
 							      //printf("%d %e %e %e\n", data->nuv,  wave.eff_wave[k], wave.eff_band[k], wave.eff_band[k] / wave.eff_wave[k]);
 							      data->uv[data->nuv].wavelength = wave.eff_wave[k];
 							      data->uv[data->nuv].bandwidth = wave.eff_band[k];
-							      
+
 							      /* flip into +u half plane */
 							      if(data->uv[data->nuv].u<0.0)
 								{
 								  data->uv[data->nuv].u = -data->uv[data->nuv].u;
 								  data->uv[data->nuv].v = -data->uv[data->nuv].v;
 								}
-							  
+
 							      data->npow++;
 							      data->nuv++;
-						
+
 							}
 						}
 					}
@@ -207,7 +207,7 @@ int get_oi_fits_data(RECONST_PARAMETERS* reconst_parameters, oi_data* data, int*
 					printf("Reading T3 record %d/%ld\r", i+1, t3.numrec);
 					  for(k=0; k<t3.nwave; k++)
 						{
-						  //	  printf("i: %d k: %d\t ", i, k); 
+						  //	  printf("i: %d k: %d\t ", i, k);
 							if(((wave.eff_wave[k]*billion)>reconst_parameters->minband)
 							   &&((wave.eff_wave[k]*billion)<reconst_parameters->maxband)
 							   &&(!(t3.record[i].flag[k])))
@@ -247,7 +247,7 @@ int get_oi_fits_data(RECONST_PARAMETERS* reconst_parameters, oi_data* data, int*
 								puv2.v = (float)( t3.record[ i ].v2coord / wave.eff_wave[ k ] );
 								puv3.u = -(puv1.u + puv2.u);
 								puv3.v = -(puv1.v + puv2.v);
-								//	if(i == 15) 
+								//	if(i == 15)
 								//  printf("%f %f %f %f %f %f %f \n",puv1.u, puv1.v, puv2.u, puv2.v, puv3.u, puv3.v, wave.eff_wave[ k ] );
 								/* Check if UV1, UV2, UV3 exist */
 
@@ -260,12 +260,12 @@ int get_oi_fits_data(RECONST_PARAMETERS* reconst_parameters, oi_data* data, int*
 								    	     l, puv1.u, puv1.v,data->uv[l].u,data->uv[l].v,
 								    	     sqrt( (-puv1.u-data->uv[l].u)*(-puv1.u-data->uv[l].u) + (-puv1.v-data->uv[l].v)*(-puv1.v-data->uv[l].v) ) );
 								    */
-								    npve = compare_uv(puv1, data->uv[l], uv_threshold);								  
+								    npve = compare_uv(puv1, data->uv[l], uv_threshold);
 								    if(  (npve != 0 ) && (wave.eff_wave[k] == data->uv[l].wavelength ) )
 								      {
 									data->bsref[data->nbis].ab.uvpnt = l;
 									data->bsref[data->nbis].ab.sign = 1;
-									
+
 									/* conjugated ref if u -ve */
 									if(npve == -1)
 										{
@@ -279,7 +279,7 @@ int get_oi_fits_data(RECONST_PARAMETERS* reconst_parameters, oi_data* data, int*
 								if(uvexists == 0)
 								  {
 								    //								    printf("Warning, orphan bispectrum %d uv1\n", data->nuv);
-								  
+
 									/* create new uv point */
 									data->uv[data->nuv].u = puv1.u;
 									data->uv[data->nuv].v = puv1.v;
@@ -396,7 +396,7 @@ int get_oi_fits_data(RECONST_PARAMETERS* reconst_parameters, oi_data* data, int*
 		}
 		*status = 0;
 	}
-
+fits_close_file(fptr, status);
 	/* ERROR HANDLING */
 	return *status;
 }
@@ -606,9 +606,9 @@ int get_oi_fits_selection(RECONST_PARAMETERS* reconst_parameters, int* status)
 		  {
 		    if(k==0)printf("%-6d\t%-25.20s",i,reconst_parameters->insname[i]);
 		    else printf("%-6.6s\t%-25.20s",zerostring,zerostring);
-		    
+
 		    printf("%-3.3d_%-14.3d\t%.0f/%.0f\n",i,k,(wave.eff_wave[k]*billion),(wave.eff_band[k]*billion));
-		    
+
 		    /*
 		      if (strlen(reconst_parameters->insname[i]) > 0)
 		      {
@@ -643,7 +643,7 @@ int get_oi_fits_selection(RECONST_PARAMETERS* reconst_parameters, int* status)
 		    tmpi = -1;
 		    printf("Only one spectral channel. ");
 		  }
-		
+
 		if(tmpi == 2)
 		  {
 		    if((reconst_parameters->maxband <= reconst_parameters->minband)||(reconst_parameters->minband < 0.0))
@@ -664,9 +664,9 @@ int get_oi_fits_selection(RECONST_PARAMETERS* reconst_parameters, int* status)
 		    goto AGAIN2;
 		  }
 	      }
-	    
+
 	  }
-	
+
 	/* Count number of vis2 and t3 available in this range for this target */
 	if(*status==0)
 	  {
@@ -679,7 +679,7 @@ int get_oi_fits_selection(RECONST_PARAMETERS* reconst_parameters, int* status)
 		fits_get_hdu_num(fptr, &phu);
 		read_oi_wavelength(fptr, vis2.insname, &wave, status);
 		fits_movabs_hdu(fptr,phu,NULL,status);
-		
+
 		if(*status==0)
 		  {
 		    if(vis2.record[0].target_id == reconst_parameters->target_id)
@@ -704,7 +704,7 @@ int get_oi_fits_selection(RECONST_PARAMETERS* reconst_parameters, int* status)
 		  }
 	      }
 	    *status = 0;
-	    
+
 	    /* bispectrum */
 	    reconst_parameters->numt3 = 0;
 	    fits_movabs_hdu(fptr,1,NULL,status);
@@ -714,7 +714,7 @@ int get_oi_fits_selection(RECONST_PARAMETERS* reconst_parameters, int* status)
 		fits_get_hdu_num(fptr, &phu);
 		read_oi_wavelength(fptr, t3.insname, &wave, status);
 		fits_movabs_hdu(fptr,phu,NULL,status);
-		
+
 		if(*status==0)
 			{
 			  if(t3.record[0].target_id == reconst_parameters->target_id)
@@ -751,11 +751,11 @@ int get_oi_fits_selection(RECONST_PARAMETERS* reconst_parameters, int* status)
 		}
 		printf("Found %ld powerspectrum and %ld bispectrum points between %.0f and %.0f nm.\n\n",
 						reconst_parameters->numvis2,reconst_parameters->numt3, reconst_parameters->minband, reconst_parameters->maxband);
-		
+
 	  }
-	
+
 	/* CLOSE FILE */
-	fits_close_file(fptr, status);	
+	fits_close_file(fptr, status);
 	/* ERROR HANDLING */
 	//	printf("DEBUG\n");
 	return *status;
