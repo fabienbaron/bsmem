@@ -990,6 +990,7 @@ int set_memsys_dataspace( float *st , int *kb , oi_data *data , RECONST_PARAMETE
   int warn_extrapolation = 0;
   float err_pow, err_rad, err_tan, err_abs, err_phi=0;
   float pow1, powerr1, pow2, powerr2, pow3, powerr3, sqamp1, sqamp2, sqamp3, sqamperr1, sqamperr2, sqamperr3;
+  printf("Loading data into memory\n");
 
   for (i = 0; i < data->npow; i++)
   {
@@ -1113,7 +1114,7 @@ int set_memsys_dataspace( float *st , int *kb , oi_data *data , RECONST_PARAMETE
     st[ kb[ 20 ] + data->npow + 1 + 2 * i ] = 0.0;
 
   }
-
+  printf("Data loaded in memory\n");
   return SUCCESS;
 }
 
