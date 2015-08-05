@@ -41,8 +41,10 @@ INCLUDE_DIRECTORIES(${NFFT_INCLUDE_DIRS})
 INCLUDE_DIRECTORIES(${X11_INCLUDE_DIRS})
 
 # Enable optimization.
-LIST(APPEND CMAKE_Fortran_FLAGS "-O5")
-LIST(APPEND CMAKE_C_FLAGS "-march=native -O2 -pipe")
+#LIST(APPEND CMAKE_Fortran_FLAGS "-O5")
+#LIST(APPEND CMAKE_C_FLAGS "-march=native -O2 -pipe")
+
+LIST(APPEND CMAKE_C_FLAGS "-ggdb -fomit-frame-pointer -pipe")
 # Collect the source:
 FILE(GLOB SOURCE *.f *.c)
 

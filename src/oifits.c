@@ -99,11 +99,8 @@ int get_oi_fits_data(RECONST_PARAMETERS* reconst_parameters, oi_data* data, int*
 	oi_uv puv1,puv2,puv3;
 	fitsfile *fptr;
 
-
 	/* If error do nothing */
 	if(*status) return *status;
-
-
 
 	/* Read fits file */
 	fits_open_file(&fptr, reconst_parameters->datafile, READONLY, status);
@@ -149,6 +146,7 @@ int get_oi_fits_data(RECONST_PARAMETERS* reconst_parameters, oi_data* data, int*
 				{
 					for(i=0; i<vis2.numrec; i++)
 					{
+					  printf("Reading V2 record %d/%ld\r", i+1, vis2.numrec);
 						for(k=0; k<vis2.nwave; k++)
 						{
 							if(((wave.eff_wave[k]*billion)> reconst_parameters->minband)
@@ -178,6 +176,7 @@ int get_oi_fits_data(RECONST_PARAMETERS* reconst_parameters, oi_data* data, int*
 							}
 						}
 					}
+					printf("\n");
 				}
 			}
 			/* free memory */
@@ -205,7 +204,7 @@ int get_oi_fits_data(RECONST_PARAMETERS* reconst_parameters, oi_data* data, int*
 				{
 					for(i=0; i<t3.numrec; i++)
 					{
-					
+					printf("Reading T3 record %d/%ld\r", i+1, t3.numrec);
 					  for(k=0; k<t3.nwave; k++)
 						{
 						  //	  printf("i: %d k: %d\t ", i, k); 
@@ -276,15 +275,7 @@ int get_oi_fits_data(RECONST_PARAMETERS* reconst_parameters, oi_data* data, int*
 									break; /*so that first match is referenced */
 								      }
 								  }
-								/*							
-	if((i == 15)&&(k=1))
-								      printf("END k: %d uvexist %d l %d uv.u %f uv.v %f uvl.u %f uvl.v %f dist %f\n", k, uvexists,
-									     l, puv1.u, puv1.v,data->uv[l].u,data->uv[l].v,
-									     sqrt( (-puv1.u-data->uv[l].u)*(-puv1.u-data->uv[l].u) + (-puv1.v-data->uv[l].v)*(-puv1.v-data->uv[l].v) ) );
-								if(i == 15)
-								  getchar();
-							      
-								*/
+
 								if(uvexists == 0)
 								  {
 								    //								    printf("Warning, orphan bispectrum %d uv1\n", data->nuv);
@@ -393,6 +384,7 @@ int get_oi_fits_data(RECONST_PARAMETERS* reconst_parameters, oi_data* data, int*
 							}
 						}
 					}
+					  printf("\n");
 				}
 			}
 			/* free memory */
@@ -641,7 +633,7 @@ int get_oi_fits_selection(RECONST_PARAMETERS* reconst_parameters, int* status)
 		    printf("Select a wavelength range (default value = 1 50000) :");
 		    if( fgets(commstring,100,stdin) == NULL)
 		      {
-			printf("Internal error when getting wavelenght range\n");
+			printf("Internal error when getting wavelength range\n");
 			  getchar();
 			  }
 		    tmpi = sscanf(commstring,"%f %f", &reconst_parameters->minband, &reconst_parameters->maxband);
@@ -763,11 +755,9 @@ int get_oi_fits_selection(RECONST_PARAMETERS* reconst_parameters, int* status)
 	  }
 	
 	/* CLOSE FILE */
-	fits_close_file(fptr, status);
-	
-	
-	
+	fits_close_file(fptr, status);	
 	/* ERROR HANDLING */
+	//	printf("DEBUG\n");
 	return *status;
 }
 

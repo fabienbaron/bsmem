@@ -3,7 +3,7 @@
  * The Contents of this file are made available subject to the terms
  * of the GNU Lesser General Public License:
  *
- * Copyright ( C ) 2002-2014 Fabien Baron, David Buscher, Hrobjartur Thorsteinsson
+ * Copyright ( C ) 2002-2015 Fabien Baron, David Buscher, Hrobjartur Thorsteinsson
  *
  * This file is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -49,6 +49,7 @@
  *     20/03/10 Added triple amplitude visu, minor fixes, waveband selection from commandline. v1.5
  *     13/09/11 Fixed memory leaks using cppcheck, fixed full elliptic approximation of bispectrum errors v1.6
  *     10/11/14 Updated convexification based on WISARD equations
+ *     01/08/15 Minor tweaks for PFI
  */
 
 #include "bsmem.h"
@@ -114,9 +115,9 @@ int main( int argc , char** argv )
 }
 float sinc( float x)
 {
-  if( x < 1e-7) 
+  if( x < 1e-7)
     return 1.;
-  else 
+  else
     return sin(x)/x;
 }
 
@@ -213,6 +214,7 @@ int bsmem( int argc , char** argv )
 
   /*************** Initialise user.UV_point and user.bsref for transforms *********/
   user.iNUV = data.nuv;
+printf("Number of unique uv points in NFFT: %d\n", user.iNUV);
   for (i = 0; i < user.iNUV; i++)
   {
     user.UV_point[ 2 * i ] = data.uv[ i ].u;
@@ -251,15 +253,15 @@ int bsmem( int argc , char** argv )
       printf("DFT allocation failed \n");
       getchar();
     }
-  
-  float cvfwhm = 0., bws; 
+
+  float cvfwhm = 0., bws;
   for(uu=0 ; uu < user.iNUV; uu++)
     {
       for(ii=0; ii < user.iNX; ii++)
-        { 
+        {
 	  for(jj=0; jj < user.iNY; jj++)
 	    {
-	      bws = sinc( pi * MAS * user.xyint * data.uv[uu].bandwidth / data.uv[uu].wavelength 
+	      bws = sinc( pi * MAS * user.xyint * data.uv[uu].bandwidth / data.uv[uu].wavelength
 			  * ( data.uv[ uu ].u * (double)ii + data.uv[ uu ].v * (double)jj ));
 	      DFT_table[ user.iNX * user.iNY * uu + ii + jj * user.iNX ] =
 	        bws
@@ -747,10 +749,12 @@ int bsmem( int argc , char** argv )
   } while (exit == 0);
 
   nfft_finalize(&user.p);
+  free_oi_data(&data);
   free(st);
+  free(startmod);
   free(user.current_visi);
   free(user.current_diffvisi);
-  free(user.bsref);
+  //free(user.bsref);
   free(user.filter_powerspectrum);
   free(user.filter_bispectrum);
   free(user.UV_point);
@@ -957,7 +961,7 @@ void uvchuck( oi_data *data , float *st , int *kb , RECONST_PARAMETERS *reconst_
       st[ kb[ 21 ] + user.iNpow + 2 * i ] = 0.0;
       st[ kb[ 21 ] + user.iNpow + 2 * i + 1 ] = 0.0;
 
-      printf("Bispectrum %d flagged\n", i);
+      //  printf("Bispectrum %d flagged\n", i);
     }
   }
 
@@ -1001,7 +1005,7 @@ int set_memsys_dataspace( float *st , int *kb , oi_data *data , RECONST_PARAMETE
 
     if( (data->powerr[ i ] <= 0.0 )|| isnan(data->powerr[ i ]) )
     {
-      printf("Warning, error on powerspectrum %d <= 0 or NaN -- error set to infinity\n", i);           
+      printf("Warning, error on powerspectrum %d <= 0 or NaN -- error set to infinity\n", i);
       st[ kb[ 20 ] + i ] = 0.0 ;
       st[ kb[ 21 ] + i ] = 0.0 ;
     }
@@ -1041,7 +1045,7 @@ int set_memsys_dataspace( float *st , int *kb , oi_data *data , RECONST_PARAMETE
         data->bisamperr[ i ] = fabs(data->bisamp[ i ]) * sqrt(sqamperr1 / sqamp1 + sqamperr2 / sqamp2 + sqamperr3 / sqamp3);
 	//   printf("Triple amplitude %d extrapolated from powerspectrum data T = %f \t E_T = %f: \r", i, data->bisamp[ i ], data->bisamperr[ i ]);
 	if(warn_extrapolation == 0)
-	  { 
+	  {
 	    warn_extrapolation = 1;
 	    printf("WARNING: at least one triple amplitude is missing and has been extrapolated from powerspectrum values\n");
 	  }
@@ -1057,7 +1061,7 @@ int set_memsys_dataspace( float *st , int *kb , oi_data *data , RECONST_PARAMETE
 
     if(reconst_parameters->biserrtype == 1 )
       {
-	// Full elliptic approximation - Initially based on Meimon 2009 appendix E 2-3 
+	// Full elliptic approximation - Initially based on Meimon 2009 appendix E 2-3
 	// See also WISARD manual
 
 	if (i == 0)
@@ -1067,22 +1071,22 @@ int set_memsys_dataspace( float *st , int *kb , oi_data *data , RECONST_PARAMETE
 	err_abs = reconst_parameters->t3ampa * data->bisamperr[ i ] + reconst_parameters->t3ampb ;
 	err_phi = (reconst_parameters->t3phia * data->bisphserr[ i ] + reconst_parameters->t3phib ) * pi / 180.0 ;
 
-	err_rad =  sqrt( 
+	err_rad =  sqrt(
 			0.5 * square( err_abs )          * square(1.+ exp(-2.*square(err_phi)))
 		      + 0.5 * square( data->bisamp[ i ]) * square(1.- exp(-square(err_phi)))
 		       );
 
-	err_tan =  sqrt( 
+	err_tan =  sqrt(
 			0.5 * square( err_abs )          * square(1.- exp(-2.*square(err_phi)))
 		      + 0.5 * square( data->bisamp[ i ]) * (1.- exp(-2.*square(err_phi)))
 			 );
-      
+
       }
-    else 
+    else
       {
 	// Approximation - 1st order
 	if (i == 0)
-	  printf("Bispectrum noise:\tClassic elliptic approximation \n");	
+	  printf("Bispectrum noise:\tClassic elliptic approximation \n");
 	err_rad = reconst_parameters->t3ampa * data->bisamperr[ i ] + reconst_parameters->t3ampb;
 	err_tan = fabs(data->bisamp[ i ] * (reconst_parameters->t3phia * data->bisphserr[ i ] + reconst_parameters->t3phib) * pi / 180.0);
       }
@@ -1092,11 +1096,11 @@ int set_memsys_dataspace( float *st , int *kb , oi_data *data , RECONST_PARAMETE
     //
     st[ kb[ 21 ] + data->npow + 2 * i ] = 1.0 / err_rad;
     st[ kb[ 21 ] + data->npow + 1 + 2 * i ] = 1.0 / err_tan;
-    
+
     // if bisamperr < 0 / bisphserr < 0 then the point had been flagged, so reset accuracy to 0
     if( ( (data->bisamperr[ i ] <= 0.0) || isnan(data->bisamperr[ i ]) ) || ( (data->bisphserr[ i ] <= 0.0 ) || isnan(data->bisphserr[ i ] ) ))
       {
-	printf("Warning, error on bispectrum %d <= 0 -- error set to infinity\n", i);	
+	// printf("Warning, error on bispectrum %d <= 0 -- error set to infinity\n", i);
 	st[ kb[ 21 ] + data->npow + 2 * i ] = 0.0 ;
 	st[ kb[ 21 ] + data->npow + 1 + 2 * i ] = 0.0 ;
       }
@@ -1105,12 +1109,12 @@ int set_memsys_dataspace( float *st , int *kb , oi_data *data , RECONST_PARAMETE
     // Set Bispectrum data, rotated by exp( -i*closure_data )
     //
     if(reconst_parameters->biserrtype == 1 )
-	// Improved elliptic approximation 
+	// Improved elliptic approximation
       st[ kb[ 20 ]+data->npow + 2 * i ] = data->bisamp[ i ] * (2.- exp( - 0.5*square(err_phi) ))  ;
    else
 	// Approximation 1st order
         st[ kb[ 20 ] + data->npow + 2 * i ] = data->bisamp[ i ];
-    
+
     st[ kb[ 20 ] + data->npow + 1 + 2 * i ] = 0.0;
 
   }
@@ -1195,7 +1199,7 @@ void display_oifits_info( oi_data *data )
 
 void set_model( RECONST_PARAMETERS* reconst_parameters , float *startmod )
 {
-  
+
   if (strcmp(reconst_parameters->priorfile, "") != 0)
   {
     if (reconst_parameters->verbose == 1)
@@ -1205,7 +1209,7 @@ void set_model( RECONST_PARAMETERS* reconst_parameters , float *startmod )
   else
   {
   float flux = 0.0;
-    int i, j;	
+    int i, j;
     switch (reconst_parameters->modeltype)
     {
       case 0:
@@ -1420,14 +1424,14 @@ void __stdcall VMEMEX( float *image , float *data )
 
   /*
   // DFT
-  
+
   for (uu = 0; uu < nuv; uu++)
     {
       user.p.f[ uu ] = 0.;
       for (ii = 0; ii < user.iNX * user.iNX; ii++)
 	user.p.f[ uu ] += DFT_table[  uu * user.iNX * user.iNX + ii] *  image[ ii ]  ;
     }
-  
+
   // END DFT
   */
   for (uu = 0; uu < nuv; uu++)
@@ -1439,7 +1443,7 @@ void __stdcall VMEMEX( float *image , float *data )
   for (i = 0; i < namp; i++)
   {
     if (user.filter_powerspectrum[ i ] > 0)
-      data[ i ] = abs2(user.current_visi[ i ]);  
+      data[ i ] = abs2(user.current_visi[ i ]);
   else
       {
 	data[ i ] = 0.;
@@ -1500,7 +1504,7 @@ void __stdcall VOPUS( float *dh , float *dd )
   }
 
   nfft_trafo(&user.p);
- 
+
   /*
  for (uu = 0; uu < nuv; uu++)
     {
@@ -1509,9 +1513,9 @@ void __stdcall VOPUS( float *dh , float *dd )
 	 user.p.f[ uu ] += DFT_table[  uu * user.iNX * user.iNX + ii] *  dh[ ii ] ;
     }
   */
- 
+
   for (uu = 0; uu < nuv; uu++)
-        user.current_diffvisi[ uu ] = user.p.f[ uu ]; 
+        user.current_diffvisi[ uu ] = user.p.f[ uu ];
 
   /* Powerspectrum */
   for (i = 0; i < namp; i++)
@@ -1628,10 +1632,10 @@ void __stdcall VTROP( float *dh , float *dd )
 
   int ii, uu;
    for (uu = 0; uu < nuv; uu++)
-    user.p.f[ uu ] = user.current_diffvisi[ uu ]; 
+    user.p.f[ uu ] = user.current_diffvisi[ uu ];
 
    nfft_adjoint(&user.p);
-  
+
   /*
   for (ii = 0; ii < user.iNX * user.iNX; ii++)
     {
@@ -1644,9 +1648,6 @@ void __stdcall VTROP( float *dh , float *dd )
   {
     dh[ ii ] = creal(user.p.f_hat[ ii ]);
   }
-
-
- 
 
 }
 
@@ -1698,8 +1699,8 @@ void op_trop_check( int npix , int ndata )
  free(hid1);
  free(hid2);
  free(temp);
- 
-  
+
+
 }
 
 float abs2(float complex cp)
