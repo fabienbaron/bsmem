@@ -337,16 +337,16 @@ printf("Number of unique uv points in NFFT: %d\n", user.iNUV);
   VMEMEX(startmod, temp);
   free(temp);
 
-  float consistency;
-  for (i = 1; i < 5; i++)
-  {
-    MEMTRQ(&st[ 0 ], &i, &consistency);
-    if (consistency > 1e-5)
-    {
-      printf("Consistency error %f \n", consistency);
-      //goto EXIT;
-    }
-  }
+  //float consistency;
+  //for (i = 1; i < 5; i++)
+  //{
+  //  MEMTRQ(&st[ 0 ], &i, &consistency);
+  //  if (consistency > 1e-5)
+  //  {
+  //    printf("Consistency error %f \n", consistency);
+  //    //goto EXIT;
+  //  }
+  // }
 
   /*
    // Circular object from powerspectrum
@@ -907,12 +907,12 @@ void uvchuck( oi_data *data , float *st , int *kb , RECONST_PARAMETERS *reconst_
       user.UV_point[ 2 * i ] = uscale * user.UV_point[ 2 * i ];
       user.UV_point[ 2 * i + 1 ] = vscale * user.UV_point[ 2 * i + 1 ];
 
-      if ((fabs(user.UV_point[ 2 * i ]) > ucut) || (fabs(user.UV_point[ 2 * i + 1 ]) > vcut))
-      {
-        user.filter_UV[ 2 * i ] = 0.0;
-        user.filter_UV[ 2 * i + 1 ] = 0.0;
-        ichuck++;
-      }
+      //     if ((fabs(user.UV_point[ 2 * i ]) > ucut) || (fabs(user.UV_point[ 2 * i + 1 ]) > vcut))
+      //  {
+      //  user.filter_UV[ 2 * i ] = 0.0;
+      //  user.filter_UV[ 2 * i + 1 ] = 0.0;
+      //  ichuck++;
+      // }
     }
   }
 
