@@ -56,7 +56,7 @@
 #include "bsmem.h"
 #include "cpgplot.h"
 
-
+int oi_hush_errors = 0; // flag for read_fits.c
 
 extern void __stdcall UAREA( int* , int* , int* , int* , int* , int* );
 extern void __stdcall MEINIT( );
@@ -685,7 +685,7 @@ void uvchuck( float *st , int *kb , RECONST_PARAMETERS *reconst_parameters )
     user.xyint = 1.0 / (2.0 * MAS * OVERSAMPLING * max_uv);
     printf("Pixel size:\t\tAutomatic, %f mas\n", user.xyint);
     reconst_parameters->xyint = user.xyint;
-    printf("Recommended size:\t %d pixels\n", (int) (v2f(2.0, ceil(log(max_uv / min_uv * 2. * OVERSAMPLING + 1.) / log(2.) ) )));
+    printf("Recommended size:\t %d pixels\n", (int) (powf(2.0, ceil(log(max_uv / min_uv * 2. * OVERSAMPLING + 1.) / log(2.) ) )));
   }
   else
     printf("Pixel size:\t\tUser defined, %f mas\n", user.xyint);
@@ -2090,4 +2090,60 @@ int dispuv( char* dev)
 	}
 
 	return 1;
+}
+
+//
+// BSMEM additions 
+//
+
+int get_oi_fits_data(RECONST_PARAMETERS* reconst_parameters, int* status)
+{
+ double wavmin, wavmax, timemin, timemax;
+ import_single_epoch_oifits(reconst_parameters->datafile, 1, 1, 1, 1, 1,
+			    0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 0, 1000, 1,
+			    &wavmin, &wavmax,&timemin, &timemax);
+
+}
+
+int read_fits_image(char* fname, float* img, int *n, float* xyint, char* source, char* datafile, int* status)
+{
+	fitsfile *fptr;       /* pointer to the FITS file, defined in fitsio.h */
+	int  nfound, anynull;
+	long naxes[2], fpixel, npixels;
+	float nullval;
+
+	if (*status==0)fits_open_file(&fptr, fname, READONLY, status);
+
+	// MODIFY so that if keys do not exist, don't crash ^^
+
+	if (*status==0)fits_read_keys_lng(fptr, "NAXIS", 1, 2, naxes, &nfound, status);
+	//  if (*status==0)fits_read_key_str(fptr, "DATAFILE", datafile, comment, status);
+	//  if (*status==0)fits_read_key_str(fptr, "TARGET", target, comment, status);
+	//  if (*status==0)fits_read_key_flt(fptr, "PIXELATION", xyint, comment, status);
+	npixels  = naxes[0] * naxes[1];         /* number of pixels in the image */
+	fpixel   = 1;
+	nullval  = 0;                /* don't check for null values in the image */
+
+	//add here a compatibility check of xyint if imported as a model
+
+
+	if(naxes[0] != naxes[1])
+	{
+		printf("Image dimension are not square.\n");
+		if(*status==0)fits_close_file(fptr, status);
+		return *status;
+	}
+	*n = naxes[0];
+	/* Allocate enough memory outside of this routine */
+	if(*status==0)fits_read_img(fptr, TFLOAT, fpixel, npixels, &nullval, img, &anynull, status);
+
+	// renormalize the model !!!
+
+
+	// reset the display by dispdev correctly
+
+
+	if(*status==0)fits_close_file(fptr, status);
+
+	return *status;
 }

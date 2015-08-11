@@ -122,7 +122,10 @@ float abs2(float complex cp);
 int get_oi_fits_data(RECONST_PARAMETERS *reconst_parameters, int* status);
 int read_fits_image(char* fname, float* img, int* n, float* xyint, char* source, char* datafile, int* status);
 
-
+int import_single_epoch_oifits( char *filename, bool use_v2, bool use_t3amp, bool use_t3phi, bool use_visamp, bool use_visphi,
+                               double v2a, double v2s, double t3ampa, double t3amps, double t3phia, double t3phis,
+                               double visampa, double visamps, double visphia, double visphis, double fluxs, double cwhm,
+				double uvtol, int nwavr, double *wavmin, double *wavmax, double *timemin, double *timemax);
 
 /* Error exit handling */
 #define CALL(x) {if((CALLvalue = (x))<0) return CALLvalue;}
