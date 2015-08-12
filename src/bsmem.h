@@ -85,9 +85,9 @@ typedef struct
   float xyint;
   float fblur;
   /* Work environments */
-  float complex *current_cvis;
-  float complex *acT0;
-  float complex *current_derivcvis;
+  float complex *cvis;
+  //  float complex *acT0;
+  float complex *dcvis;
   float complex *data_phasor;
   // float complex *DFT_table;
   float imflux;

@@ -205,24 +205,25 @@ int bsmem( int argc , char** argv )
 
   /*************** Assign memory to work spaces *********************************/
   /* Opus/Tropus */
-  user.current_cvis = malloc( nuv * sizeof( float complex ) );
-  user.current_derivcvis = malloc( nuv * sizeof( float complex ) );
+  user.cvis = malloc( nuv * sizeof( float complex ) );
+  user.dcvis = malloc( nuv * sizeof( float complex ) );
   user.data_phasor = malloc( (nt3phi + nvisphi) * sizeof( float complex ) );
   
   for (i = 0; i < nuv; i++)
   {
-    user.current_cvis[ i ] = 0.0;
-    user.current_derivcvis[ i ] = 0.0;
+    user.cvis[ i ] = 0.0;
+    user.dcvis[ i ] = 0.0;
   }
 
   
   /*************** Initialise UV_point and t3in for transforms *********/
   
-  for (ii = 0; ii < nt3phi; ii++)
-    user.data_phasor[ ii ] = cexp(-I * data[ nv2 + nt3amp + nvisamp + ii ] );
-
   for (ii = 0; ii < nvisphi; ii++)
-    user.data_phasor[ nt3phi + ii ] = cexp(-I * data[ nv2 + nt3amp + nvisamp + nt3phi + ii ] );
+    user.data_phasor[ ii ] = cexp(-I * data[ nv2 + nt3amp + nvisamp + nt3phi + ii ] );
+
+  for (ii = 0; ii < nt3phi; ii++)
+    user.data_phasor[ nvisphi + ii ] = cexp(-I * data[ nv2 + nt3amp + nvisamp + ii ] );
+
  
   /* Set up MEMSYS data area*/
 
@@ -237,7 +238,7 @@ int bsmem( int argc , char** argv )
   // fft lengths
   nn[ 0 ] = powf(2., ceil(log(NN[ 0 ])/log(2)));
   nn[ 1 ] = powf(2., ceil(log(NN[ 1 ])/log(2)));
-  printf("Setting up NFFT -- nuv: %ld image: %d x %d FFTs: %d x %d\n", nuv, NN[0], NN[1], nn[0], nn[1]);  
+  printf("\nSetting up NFFT\t nuv: %ld image: %d x %d FFTs: %d x %d\n", nuv, NN[0], NN[1], nn[0], nn[1]);  
   nfft_init_guru(&user.p, 2, NN, nuv, nn, 6, PRE_FULL_PSI | MALLOC_F_HAT | MALLOC_X | MALLOC_F | FFTW_INIT | FFT_OUT_OF_PLACE, FFTW_ESTIMATE | FFTW_DESTROY_INPUT);
 
   for (i = 0; i < nuv; i++)
@@ -595,8 +596,8 @@ int bsmem( int argc , char** argv )
   nfft_finalize(&user.p);
   free(st);
   free(startmod);
-  free(user.current_cvis);
-  free(user.current_derivcvis);
+  free(user.cvis);
+  free(user.dcvis);
   EXIT: printf("\n\n");
 
   return SUCCESS;
@@ -798,12 +799,29 @@ int set_memsys_dataspace( float *st , int *kb  , RECONST_PARAMETERS *reconst_par
     //
     // Set data + errors in minimizer memory
     //
-    st[ kb[ 20 ] + nv2 + nt3amp + nvisamp + i ] = 0.0;
+    
+    //t3amp
     st[ kb[ 20 ] + nv2 + i ] = data[nv2 + i ] * bias;
     st[ kb[ 21 ] + nv2 + i ] = err_rad;
+
+    // t3phi
+    st[ kb[ 20 ] + nv2 + nt3amp + nvisamp + i ] = 0.0;
     st[ kb[ 21 ] + nv2 + nt3amp + nvisamp + i ] = err_tan;
   }
 
+  for (i = 0; i < nvis; i++)
+    {
+      err_rad = data_err[nv2 + nt3amp + i ] ;
+      err_tan = data_err[nv2 + nt3amp + nvisamp + nt3phi + i ] / fabs(data[nv2 + nt3amp + i ]);
+      
+      // visamp
+      st[ kb[ 20 ] + nv2 + nt3amp + i ] = data[nv2 + nt3amp + i ];
+      st[ kb[ 21 ] + nv2 + nt3amp + i ] = err_rad;
+
+      // visphi
+      st[ kb[ 20 ] + nv2 + nt3amp + nvisamp + nt3phi + i ] = 0;
+      st[ kb[ 21 ] + nv2 + nt3amp + nvisamp + nt3phi + i ] = err_tan;
+  }
 
   printf("Data loaded in memory\n");
   return SUCCESS;
@@ -821,7 +839,9 @@ void __stdcall UREST( int *ints , int *nints , float *reals , int *nreals )
 
 void display_oifits_info( )
 {
-  float ratio, nmin1 = 0.0, nmin2 = 0.0, nmin3 = 0.0, nmax1 = 1e10, nmax2 = 1e10, nmax3 = 1e10, tot1 = 0., tot2 = 0., tot3 = 0.;
+  float raw, ratio, nmin1 = 0.0, nmin2 = 0., nmin3 = 0., nmin4 =0., nmin5 =0. ,
+    nmax1 = 1e10, nmax2 = 1e10, nmax3 = 1e10, nmax4 = 1e10, nmax5 = 1e10,
+    tot1 = 0., tot2 = 0., tot3 = 0., tot4 =0., tot5=0.;
   char choice[ 5 ], tempstr;
   int ii;
   printf("Display powerspectrum data ? y/[ N ] ");
@@ -852,9 +872,11 @@ void display_oifits_info( )
     printf("Error getting answer\n");
 
   tempstr = choice[ 0 ];
+  
   for (ii = 0; ii < nt3; ii++)
   {
     ratio = fabs(data[nv2 + ii ] * data_err[nv2 + ii ]);
+raw =  1./data_err[nv2 + nt3amp + nvisamp + ii ]* 180./M_PI;
     if ((tempstr == 'y') || (tempstr == 'Y'))
       printf("N: %d Amp : %9f +/- %9f | S/N %3.1f | Phs : %9f +/- %9f\n", ii, data[nv2 + ii ], 1./data_err[nv2 + ii ], ratio,
           data[nv2 + nt3amp + nvisamp + ii ] * 180./M_PI, 180./M_PI/data_err[nv2 + nt3amp + nvisamp + ii ]);
@@ -862,25 +884,50 @@ void display_oifits_info( )
     {
       nmin2 = ratio;
       nmax2 = ratio;
-      nmin3 = 1./data_err[nv2 + nt3amp + nvisamp + ii ]* 180./M_PI;
-      nmax3 = 1./data_err[nv2 + nt3amp + nvisamp + ii ]* 180./M_PI;
+      nmin3 = raw;
+      nmax3 = raw;
     }
-    if (ratio < nmin2)
-      nmin2 = ratio;
-    if (ratio > nmax2)
-      nmax2 = ratio;
-    if (1./data_err[nv2 + nt3amp + nvisamp + ii ] * 180./M_PI< nmin3)
-      nmin3 = 1./data_err[nv2 + nt3amp + nvisamp + ii ]* 180./M_PI;
-    if (1./data_err[nv2 + nt3amp + nvisamp + ii ]* 180./M_PI > nmax3)
-      nmax3 = 1./data_err[nv2 + nt3amp + nvisamp + ii ]* 180./M_PI;
+    if (ratio < nmin2)      nmin2 = ratio;
+    if (ratio > nmax2)      nmax2 = ratio;
+    if (raw < nmin3)      nmin3 = raw;
+    if (raw  > nmax3)      nmax3 = raw;
     tot2 += ratio / nt3;
-    tot3 += 1./data_err[nv2 + nt3amp + nvisamp + ii ] * 180./M_PI/ nt3;
+    tot3 += raw / nt3;
   }
+  
+ printf("Display complex vis data ? y/[ N ] ");
+  if(fgets(choice, sizeof(choice), stdin) ==NULL)
+    printf("Error getting answer\n");
 
-  printf("SNR |   v2    |  t3amp    | t3phs    |\n");
-  printf("Min | %8.1f | %8.1f | %8.3f |\n", nmin1, nmin2, nmin3);
-  printf("Avg | %8.1f | %8.1f | %8.3f |\n", tot1, tot2, tot3);
-  printf("Max | %8.1f | %8.1f | %8.3f |\n", nmax1, nmax2, nmax3);
+  tempstr = choice[ 0 ];
+  
+for (ii = 0; ii < nvis; ii++)
+  {
+    ratio = fabs(data[nv2 + nt3amp + ii ] * data_err[nv2 + nt3amp +ii ]);
+    raw = 1./data_err[nv2 + nt3amp + nvisamp + nt3phi + ii ]* 180./M_PI;
+
+    if ((tempstr == 'y') || (tempstr == 'Y'))
+      printf("N: %d Amp : %9f +/- %9f | S/N %3.1f | Phs : %9f +/- %9f\n", ii, data[nv2 +  nt3amp + ii ], 1./data_err[nv2 +  nt3amp + ii ], ratio,
+          raw, 180./M_PI/data_err[nv2 + nt3amp + nvisamp + nt3phi + ii ]);
+    if (ii == 0)
+    {
+      nmin4 = ratio;
+      nmax4 = ratio;
+      nmin5 = raw;
+      nmax5 = raw;
+    }
+    if (ratio < nmin4) nmin4 = ratio;
+    if (ratio > nmax4) nmax4 = ratio;
+    if (raw < nmin5) nmin5 = raw;
+    if (raw > nmax5) nmax5 = raw;
+    tot4 += ratio / nvis;
+    tot5 += raw / nvis;
+  }
+ 
+  printf("SNR / Raw Phase |   v2     |  t3amp   | t3phs    | visamp   | visphi   |\n");
+  printf("Min             | %8.1f | %8.1f | %8.3f | %8.1f | %8.3f |\n", nmin1, nmin2, nmin3, nmin4, nmin5);
+  printf("Avg             | %8.1f | %8.1f | %8.3f | %8.1f | %8.3f |\n", tot1, tot2, tot3, tot4, tot5);
+  printf("Max             | %8.1f | %8.1f | %8.3f | %8.1f | %8.3f |\n", nmax1, nmax2, nmax3, nmax4, nmax5);
 
 }
 
@@ -1089,11 +1136,10 @@ int write_fits_image( float* img , RECONST_PARAMETERS* reconst_parameters , int*
 
 void __stdcall VMEMEX( float *image , float *model_data )
 {
-  // Visible-to-Data transform
-  // Takes present model image and calculates the appropriate non-linear
-  // mock data values. (Powerpectrum and bispectrum points)
+  // takes current image and computes the  mock observables (v2, t3, cvis, ...)
+  
   float complex vtemp, V0ab, V0bc,V0ca;
-  float complex* cvis = user.current_cvis;
+  float complex* cvis = user.cvis;
   
   
   user.imflux = 0.0;  
@@ -1102,58 +1148,66 @@ void __stdcall VMEMEX( float *image , float *model_data )
       user.p.f_hat[ i ] = image[ i ] + I * 0.0;
       user.imflux += image[ i ];
     }
+  
   nfft_trafo(&user.p);
   
   for (int uu = 0; uu < nuv; uu++)
     cvis[ uu ] = user.p.f[ uu ];
 
-  // Powerpesctrum
+  // VIS
+  for (int i = 0; i < nvis; i++)
+    {
+      vtemp = cvis[i] * user.data_phasor[ i ];
+      model_data[ nv2 + nt3amp + i ] = creal(vtemp);
+      model_data[ nv2 + nt3amp + nvisamp + nt3phi + i ] = cimag(vtemp);
+    }
+  
+  // V2
   for (int i = 0; i < nv2; i++)
-    model_data[ i ] = abs2(cvis[ i ]);
+    model_data[ i ] = abs2(cvis[ nvis + i ]);
 
-  //printf("Check - powerspectrum 0 == %f\n", model_data[0]);
-  // Bispectrum
+  // T3
   for (int i = 0; i < nt3; i++)
   {
     V0ab = cvis[ t3in1[ i ] ];
     V0bc = cvis[ t3in2[ i ] ];
     V0ca = cvis[ t3in3[ i ] ];
-    vtemp = V0ab * V0bc * conj(V0ca) * user.data_phasor[ i ];
+    vtemp = V0ab * V0bc * conj(V0ca) * user.data_phasor[ nvisphi + i ];
     model_data[ nv2 +  i ] = creal(vtemp);
     model_data[ nv2 + nt3amp + nvisamp + i ] = cimag(vtemp);
-
   }
 
-for (int i = 0; i < nvis; i++)
-  {
-    model_data[ nv2 + nt3amp + i ] = creal(cvis[i]);
-    model_data[ nv2 + nt3amp + nvisamp + nt3phi + i ] = cimag(cvis[i]);
-  }
+  
 }
 
-void __stdcall VOPUS( float *dh , float *d_model_data )
+void __stdcall VOPUS( float *dimage , float *d_model_data )
 {
-  // delta_visibility to delta_observable
-  // dh is dImage, d_model_data is dData
+  // delta_image to delta_model_data transform
   float complex vtemp;
   float complex V0ab, V0bc, V0ca;
   float complex VISab, VISbc, VISca;
-  float complex* cvis = user.current_cvis;
-  float complex* dcvis = user.current_derivcvis;
+  float complex* cvis = user.cvis;
+  float complex* dcvis = user.dcvis;
 
   
   for (int i = 0; i < user.iNX * user.iNX; i++)
-    user.p.f_hat[ i ] = dh[ i ] + I * 0.0;
+    user.p.f_hat[ i ] = dimage[ i ] + I * 0.0;
 
   nfft_trafo(&user.p);
 
   for (int u = 0; u < nuv; u++)
     dcvis[ u ] = user.p.f[ u ];
 
+  for (int i = 0; i < nvis; i++)
+    {
+      vtemp =  user.data_phasor[ i ] * dcvis[i];
+      d_model_data[ nv2 + nt3amp + i ] = creal(vtemp);
+      d_model_data[ nv2 + nt3amp + nvisamp + nt3phi + i ] = cimag(vtemp);
+    }
+  
   /* Powerspectrum */
   for (int i = 0; i < nv2; i++)
-      d_model_data[ i ] = 2.0 *	(creal(dcvis[ i ]) * creal(cvis[ i ]) + cimag(dcvis[ i ]) * cimag(cvis[ i ]));
-
+      d_model_data[ i ] = 2.0 *	(creal(dcvis[ nvis + i ]) * creal(cvis[ nvis + i ]) + cimag(dcvis[ nvis + i ]) * cimag(cvis[ nvis + i ]));
 
   /* Bispectrum */
   for (int i = 0; i < nt3; i++)
@@ -1165,38 +1219,41 @@ void __stdcall VOPUS( float *dh , float *d_model_data )
       VISbc = dcvis[ t3in2[ i ] ];
       VISca = dcvis[ t3in3[ i ] ];
       /* differential response calculation */
-      vtemp = user.data_phasor[ i ] * (VISab * V0bc * conj(V0ca) + VISbc * conj(V0ca) * V0ab + conj(VISca) * V0ab * V0bc);
+      vtemp = user.data_phasor[ nvisphi + i ] * (VISab * V0bc * conj(V0ca) + VISbc * conj(V0ca) * V0ab + conj(VISca) * V0ab * V0bc);
       d_model_data[ nv2 + i ] = creal(vtemp);
       d_model_data[ nv2 + nt3amp + nvisamp + i ] = cimag(vtemp);
 
   }
 
-
-  for (int i = 0; i < nvis; i++)
-    {
-      d_model_data[ nv2 + nt3amp + i ] = creal(dcvis[i]);
-      d_model_data[ nv2 + nt3amp + nvisamp + nt3phi + i ] = cimag(dcvis[i]);
-    }
   
 }
 
-void __stdcall VTROP( float *dh , float *dd )
-{ // Data-to-Visible differential transform
+void __stdcall VTROP( float *dimage , float *d_model_data )
+{
+  // delta_model to delta_image
 
   float complex V0ab,V0bc,V0ca;
   float complex VISab,VISbc,VISca;
-  float complex t3;
-  float complex* cvis = user.current_cvis;
-  float complex* dcvis = user.current_derivcvis;
+  float complex t3, vtemp;
+  float complex* cvis = user.cvis;
+  float complex* dcvis = user.dcvis;
 
   for (int i = 0; i < nuv; i++)
     dcvis[ i ] = 0.0;
 
-  /* Powerspectrum contribution */
-  for (int i = 0; i < nv2; i++)
-      dcvis[ i ] += cvis[ i ] * 2.0 * dd[ i ];
 
-  /* Bispectrum contribution */
+  // VIS
+   for (int i = 0; i < nvis; i++)
+    {
+      dcvis[ i ] += (d_model_data[nv2 + nt3amp + i] + I * d_model_data[ nv2 + nt3amp + nvisamp + nt3phi + i ]) * conj(user.data_phasor[ i ]);       
+    }
+ 
+
+   // V2
+  for (int i = 0; i < nv2; i++)
+      dcvis[ nvis + i ] += 2. * d_model_data[i] * cvis[ nvis + i ];
+
+  // T3
   for (int i = 0; i < nt3; i++)
   {
       /* previous visibilities */
@@ -1205,7 +1262,7 @@ void __stdcall VTROP( float *dh , float *dd )
       V0ca = cvis[t3in3[i]];
 
       /* input bispectrum differential */
-      t3 = (dd[ nv2 + i ] + I * dd[ nv2 + nt3amp + nvisamp + i ]) * conj(user.data_phasor[ i ]);
+      t3 = (d_model_data[ nv2 + i ] + I * d_model_data[ nv2 + nt3amp + nvisamp + i ]) * conj(user.data_phasor[ nvisphi + i ]);
 
       /* differential response calculation */
       VISab = t3 * V0bc * V0ca;
@@ -1218,20 +1275,14 @@ void __stdcall VTROP( float *dh , float *dd )
       dcvis[ t3in3[i] ] += VISca;
 
   }
-
-  for (int i = 0; i < nvis; i++)
-    {
-      dcvis[ nv2 + nt3amp + i ] = creal(dcvis[i]);
-      dcvis[ nv2 + nt3amp + nvisamp + nt3phi + i ] = cimag(dcvis[i]);
-    }
-  
+ 
   for (int uu = 0; uu < nuv; uu++)
     user.p.f[ uu ] = dcvis[ uu ];
-  
-  nfft_adjoint(&user.p); 
+
+  nfft_adjoint(&user.p); // adjoint nfft
 
   for (int ii = 0; ii < user.iNX * user.iNX; ii++)
-      dh[ ii ] = creal(user.p.f_hat[ ii ]);
+    dimage[ ii ] = creal(user.p.f_hat[ ii ]) > 0. ? creal(user.p.f_hat[ ii ]):1e-8;  // image is in the real plane
 
 }
 
@@ -1803,8 +1854,8 @@ int get_default_model(float* model, float* currentimage, int n, float xs, float 
 		}
 
 		if (d=='X') {
-			// validate model and finish
-			cpgtext(0,xyint*n,"Current model validated");
+			// accept model and finish
+			cpgtext(0,xyint*n,"Current model accepted");
 			//       redisplay(currentimage,n,n,xs,xe,ys,ye,id);
 
 			//renormalize model, display contour plot
@@ -1962,7 +2013,7 @@ int redisplay(float* image, USER *user, float displaypower, int contour)
 				errhi = data[i] - 1./data_err[i];
 				cpgerry( 1, &r, &errlow , &errhi , 1.0);
 				cpgsci(4);
-				cpgpt1( r , abs2( user->current_cvis[i] ) , 4);
+				cpgpt1( r , abs2( user->cvis[i] ) , 4);
 		}
 	}
 	
@@ -2033,9 +2084,9 @@ int redisplay(float* image, USER *user, float displaypower, int contour)
 			errhi = data[nv2 +i] - 1./data_err[nv2 +i];
 			cpgerry( 1, &r, &errlow , &errhi , 1.0);
 			
-			V0ab = user->current_cvis[t3in1[i]];
-			V0bc = user->current_cvis[t3in2[i]];
-			V0ca = user->current_cvis[t3in3[i]];
+			V0ab = user->cvis[t3in1[i]];
+			V0bc = user->cvis[t3in2[i]];
+			V0ca = user->cvis[t3in3[i]];
 			vtemp = V0ab * V0bc * conj(V0ca);
 			
 			cpgslct(user->idt3phi);
@@ -2081,6 +2132,8 @@ int dispuv( char* dev)
 	cpgpt1(-1.0,1.0,0);
 	cpgptxt(-1.0,(1.0-0.02),0.0,-0.05,"v2");
 	cpgsch(1.5);
+
+
 	/*Draw all v2 UVs.*/
 	for(i=0; i<nv2; i++)
 	{
@@ -2089,10 +2142,28 @@ int dispuv( char* dev)
 		cpgpt1(u_point,v_point,0);
 		cpgpt1(-u_point,-v_point,0);
 	}
+
+	cpgsci(4);
+	cpgsch(1.0);
+	cpgpt1(-1.0,1.0-0.07,0);
+	cpgptxt(-1.0,(1.0-0.02),0.0,-0.05,"cvis");
+	cpgsch(1.5);
+
+	/*Draw all vis UVs.*/
+	for(i=nv2; i<nv2+nvis; i++)
+	{
+		u_point = u[i]/(max);
+		v_point = v[i]/(max);
+		cpgpt1(u_point,v_point,0);
+		cpgpt1(-u_point,-v_point,0);
+	}
+
+
+
 	/* Draw all BS UVs */
 	cpgsci(2);
 	cpgsch(1.0);
-	cpgpt1(-1.0,(1.0-0.07),2);
+	cpgpt1(-1.0,(1.0-0.07*2.),2);
 	cpgptxt(-1.0,(1.0-0.02-0.07),0.0,-0.05,"t3");
 	cpgsch(1.2);
 	for(i=0; i<nt3; i++)
@@ -2121,7 +2192,7 @@ int dispuv( char* dev)
 int get_oi_fits_data(RECONST_PARAMETERS* reconst_parameters, int* status)
 {
  double wavmin, wavmax, timemin, timemax;
- import_single_epoch_oifits(reconst_parameters->datafile, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 0, 1000, 1,
+ import_single_epoch_oifits(reconst_parameters->datafile, 0, 0, 0, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 0, 1000, 1,
 			    &wavmin, &wavmax,&timemin, &timemax);
 
 }
