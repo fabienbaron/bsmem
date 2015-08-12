@@ -55,6 +55,13 @@
 
 #include "bsmem.h"
 #include "cpgplot.h"
+#define TEXT_COLOR_RED     "\x1b[31m"
+#define TEXT_COLOR_GREEN   "\x1b[32m"
+#define TEXT_COLOR_YELLOW  "\x1b[33m"
+#define TEXT_COLOR_BLUE    "\x1b[34m"
+#define TEXT_COLOR_MAGENTA "\x1b[35m"
+#define TEXT_COLOR_CYAN    "\x1b[36m"
+#define TEXT_COLOR_BLACK   "\x1b[0m"
 
 int oi_hush_errors = 0; // flag for read_fits.c
 
@@ -87,7 +94,7 @@ int bsmem( int argc , char** argv );
 int set_memsys_dataspace( float *st , int *kb ,  RECONST_PARAMETERS *reconst_parameters );
 int reset_memsys_dataspace( float *st , int *kb ,  RECONST_PARAMETERS *reconst_parameters );
 int write_fits_image( float* img , RECONST_PARAMETERS* reconst_parameters , int* status );
-void uvchuck(float *st , int *kb , RECONST_PARAMETERS *reconst_parameters );
+void autosize(float *st , int *kb , RECONST_PARAMETERS *reconst_parameters );
 void display_oifits_info( );
 void set_model( RECONST_PARAMETERS* reconst_parameters , float *startmod );
 void display_command_help( );
@@ -219,15 +226,14 @@ int bsmem( int argc , char** argv )
 
   /* Set up MEMSYS data area*/
   set_memsys_dataspace(st, kb,  &reconst_parameters);
-  uvchuck(st, kb, &reconst_parameters);
+  autosize(st, kb, &reconst_parameters);
 
   int NN[ 2 ], nn[ 2 ];
   NN[ 0 ] = user.iNX;
   nn[ 0 ] = 2 * NN[ 0 ];
   NN[ 1 ] = user.iNX;
   nn[ 1 ] = 2 * NN[ 1 ];
-  nfft_init_guru(&user.p, 2, NN, nuv, nn, 6, PRE_FULL_PSI | MALLOC_F_HAT | MALLOC_X | MALLOC_F | FFTW_INIT | FFT_OUT_OF_PLACE,
-      FFTW_ESTIMATE | FFTW_DESTROY_INPUT);
+  nfft_init_guru(&user.p, 2, NN, nuv, nn, 6, PRE_FULL_PSI | MALLOC_F_HAT | MALLOC_X | MALLOC_F | FFTW_INIT | FFT_OUT_OF_PLACE, FFTW_ESTIMATE | FFTW_DESTROY_INPUT);
 
   for (i = 0; i < nuv; i++)
   {
@@ -329,7 +335,7 @@ int bsmem( int argc , char** argv )
     command_number = ninterface_commands + 1;
     if (reconst_parameters.noui == 0)
     {
-      printf("* ");
+      printf(TEXT_COLOR_RED"bsmem> "TEXT_COLOR_BLACK);
       if( fgets(line, 150, stdin) == NULL)
 	printf("Error getting command\n");
       tempstr = line[ 0 ];
@@ -650,7 +656,7 @@ int read_model( char* filename , float* mod , int N , float normalisation)
   return 1;
 }
 
-void uvchuck( float *st , int *kb , RECONST_PARAMETERS *reconst_parameters )
+void autosize( float *st , int *kb , RECONST_PARAMETERS *reconst_parameters )
 {
   int i;
   float uscale, vscale, ucut, vcut, ovsamp;
