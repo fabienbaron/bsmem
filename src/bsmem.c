@@ -308,10 +308,9 @@ int bsmem( int argc , char** argv )
   MEM4(st, &memrun, &entropy, &test, &chisq, &scale, &plow, &phigh, &pdev, &glow, &ghigh, &gdev, &omega, &alpha, &istat, &ntrans);
   if (reconst_parameters.verbose == 1)
   {
-    printf("Iteration %d Ntrans === %d istat === %d%d%d%d%d%d%d \n", total_iter, ntrans, istat % 2, istat / 2 % 2, istat / 4 % 2, istat / 8
-        % 2, istat / 16 % 2, istat / 32 % 2, istat / 64 % 2);
-    printf("Entropy === %f  Chisq === %f Flux === %f Alpha === %f Omega === %f \n", entropy, chisq / (float) ndata, user.imflux, alpha, omega);
-    printf("Logprob === %f Good Measurements === %f Scale === %f \n", (plow + phigh) / 2., (glow + ghigh) / 2., scale);
+     printf("It: %d Ent: %f  Chi2: %f Flux: %f Reg: %f Conv: %f LogZ: %f Stat: %d%d%d%d%d%d%d FFT: %d\n",
+	    total_iter, entropy, chisq / (float) ndata, user.imflux, alpha, omega, (plow + phigh) / 2., istat % 2, istat / 2 % 2, istat / 4 % 2, istat / 8
+	   % 2, istat / 16 % 2, istat / 32 % 2, istat / 64 % 2, ntrans);
   }
   memrun = 2;
 
@@ -523,11 +522,9 @@ int bsmem( int argc , char** argv )
           i++;
           if (reconst_parameters.verbose == 1)
           {
-            printf("Iteration %d Ntrans === %d istat === %d%d%d%d%d%d%d \n", total_iter, ntrans, istat % 2, istat / 2 % 2, istat / 4 % 2,
-                istat / 8 % 2, istat / 16 % 2, istat / 32 % 2, istat / 64 % 2);
-            printf("Entropy === %f  Chisq === %f Flux === %f Alpha === %f Omega === %f \n", entropy, chisq / (float) ndata, user.imflux, alpha, omega);
-            printf("Logprob === %f Test === %f Good Measurements === %f Scale === %f \n", (plow + phigh) / 2., test, (glow + ghigh) / 2.,
-                scale);
+	    printf("It: %d Ent: %f  Chi2: %f Flux: %f Reg: %f Conv: %f LogZ: %f Stat: %d%d%d%d%d%d%d FFT: %d\n",
+	    total_iter, entropy, chisq / (float) ndata, user.imflux, alpha, omega, (plow + phigh) / 2., istat % 2, istat / 2 % 2, istat / 4 % 2, istat / 8
+	   % 2, istat / 16 % 2, istat / 32 % 2, istat / 64 % 2, ntrans);
           }
 
           if (isnan(omega) > 0)
@@ -1410,7 +1407,14 @@ int get_input(RECONST_PARAMETERS* reconst_parameters, int argc, char** argv )
 
 int commandline(RECONST_PARAMETERS* reconst_parameters, int argc, char** argv)
 {
-  printf("\n\n**********  BSMEM v2.0   ******************\n");
+printf("######   #####  #     # ####### #     #          #####\n");
+printf("#     # #     # ##   ## #       ##   ##         #     #\n");
+printf("#     # #       # # # # #       # # # #               #\n");
+printf("######   #####  #  #  # #####   #  #  #          #####\n");
+printf("#     #       # #     # #       #     #         #\n");
+printf("#     # #     # #     # #       #     #         #\n");
+printf("######   #####  #     # ####### #     #         #######\n\n");
+
   int i;
   int help = 0;
   // DISPLAY HELP
@@ -1423,7 +1427,7 @@ int commandline(RECONST_PARAMETERS* reconst_parameters, int argc, char** argv)
     {
       if(strcmp(argv[i],"-d") == 0)
 	sscanf(argv[i+1], "%s", reconst_parameters->datafile);
-      else if (strcmp(argv[i],"-p") == 0)
+      else if (strcmp(argv[i],"-s") == 0)
 	sscanf(argv[i+1],"%f", &reconst_parameters->xyint);
       else if (strcmp(argv[i],"-it") == 0)
 	sscanf(argv[i+1],"%d", &reconst_parameters->maxiter);
@@ -1439,8 +1443,6 @@ int commandline(RECONST_PARAMETERS* reconst_parameters, int argc, char** argv)
 	sscanf(argv[i+1],"%f", &reconst_parameters->modelwidth);
       else if (strcmp(argv[i],"-mt") == 0)
 	sscanf(argv[i+1],"%d", &reconst_parameters->modeltype);
-      else if (strcmp(argv[i],"-p") == 0)
-	sscanf(argv[i+1],"%f", &reconst_parameters->xyint);
       else if (strcmp(argv[i],"-wavmin") == 0)
 	  sscanf(argv[i+1],"%f", &reconst_parameters->minband);
       else if (strcmp(argv[i],"-wavmax") == 0)
@@ -1497,7 +1499,7 @@ int commandline(RECONST_PARAMETERS* reconst_parameters, int argc, char** argv)
       printf("\t\t   4 : Lorentzian.\n");
       printf("-mw:\t\t Model witdth (Gaussian and Uniform Disk only). \n");
       printf("-mf:\t\t Total flux of the model. \n");
-      printf("-p:\t\t Size of a pixel (in mas). Set to 0 for automatic.\n");
+      printf("-s:\t\t Size of a pixel (in mas). Set to 0 for automatic.\n");
       printf("-w:\t\t Width (in pixels) of the reconstructed image.\n");
       printf("-e:\t\t Entropy functional.\n\t\t   1: Gull-Skilling entropy.\n\t\t   4: Quadratic regularization.\n");
       printf("-r:\t\t Regularization hyperparameter evaluation. \n");
@@ -1509,8 +1511,6 @@ int commandline(RECONST_PARAMETERS* reconst_parameters, int argc, char** argv)
       printf("\t\t   0 : Classic elliptic approximation, 1st order only (default)\n");
       printf("\t\t   1 : 'Full' elliptic approximation (Meimon et al.).\n");
       printf("-ferr:\t\t Error on the zero flux powerspectrum (default = 1e-4).\n");
-      printf("-wavmin:\t\t Lower wavelength value for data selection purpose (in nm).\n");
-      printf("-wavmax:\t\t Higher wavelength value for data selection purpose (in nm).\n");
       printf("-forcext:\t\t Force triple amplitude computation from powerspectrum data.\n");
       printf("-vb:\t\t Verbose on/off.\n");
       printf("-noui:\t\t No user interface, BSMEM exits immediately after the reconstruction.\n");
