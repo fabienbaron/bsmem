@@ -207,7 +207,7 @@ int bsmem( int argc , char** argv )
   /* Opus/Tropus */
   user.current_cvis = malloc( nuv * sizeof( float complex ) );
   user.current_derivcvis = malloc( nuv * sizeof( float complex ) );
-  user.data_phasor = malloc( nt3 * sizeof( float complex ) );
+  user.data_phasor = malloc( (nt3phi + nvisphi) * sizeof( float complex ) );
   
   for (i = 0; i < nuv; i++)
   {
@@ -218,21 +218,26 @@ int bsmem( int argc , char** argv )
   
   /*************** Initialise UV_point and t3in for transforms *********/
   
-  printf("Number of unique uv points in NFFT: %ld\n", nuv);
-
-  /* Convert exp( -I*closure phase ) to Real/Imaginary parts */
-  for (ii = 0; ii < nt3; ii++)
+  for (ii = 0; ii < nt3phi; ii++)
     user.data_phasor[ ii ] = cexp(-I * data[ nv2 + nt3amp + nvisamp + ii ] );
 
+  for (ii = 0; ii < nvisphi; ii++)
+    user.data_phasor[ nt3phi + ii ] = cexp(-I * data[ nv2 + nt3amp + nvisamp + nt3phi + ii ] );
+ 
   /* Set up MEMSYS data area*/
+
+  
   set_memsys_dataspace(st, kb,  &reconst_parameters);
   autosize(st, kb, &reconst_parameters);
 
   int NN[ 2 ], nn[ 2 ];
+  // bandwidths
   NN[ 0 ] = user.iNX;
-  nn[ 0 ] = 2 * NN[ 0 ];
   NN[ 1 ] = user.iNX;
-  nn[ 1 ] = 2 * NN[ 1 ];
+  // fft lengths
+  nn[ 0 ] = powf(2., ceil(log(NN[ 0 ])/log(2)));
+  nn[ 1 ] = powf(2., ceil(log(NN[ 1 ])/log(2)));
+  printf("Setting up NFFT -- nuv: %ld image: %d x %d FFTs: %d x %d\n", nuv, NN[0], NN[1], nn[0], nn[1]);  
   nfft_init_guru(&user.p, 2, NN, nuv, nn, 6, PRE_FULL_PSI | MALLOC_F_HAT | MALLOC_X | MALLOC_F | FFTW_INIT | FFT_OUT_OF_PLACE, FFTW_ESTIMATE | FFTW_DESTROY_INPUT);
 
   for (i = 0; i < nuv; i++)
@@ -242,7 +247,7 @@ int bsmem( int argc , char** argv )
   }
 
   nfft_precompute_one_psi(&user.p);
-  
+
   /*************** Compulsory initialisation ***********************************/
   MEINIT();
 
@@ -827,7 +832,7 @@ void display_oifits_info( )
   {
     ratio = fabs(data[ ii ] * data_err[ ii ]);
     if ((tempstr == 'y') || (tempstr == 'Y'))
-      printf("N: %d Amp: %9f +/-%9f | S/N %3.1f\n", ii, data[ ii ], 1./data_err[ ii ], ratio);
+      printf("N: %d Amp: %9f +/- %9f | S/N %3.1f\n", ii, data[ ii ], 1./data_err[ ii ], ratio);
     if (ii == 1)
     {
       nmax1 = ratio;
@@ -851,25 +856,25 @@ void display_oifits_info( )
   {
     ratio = fabs(data[nv2 + ii ] * data_err[nv2 + ii ]);
     if ((tempstr == 'y') || (tempstr == 'Y'))
-      printf("N: %d Amp : %9f +/-%9f | S/N %3.1f | Phs : %9f +/-%9f\n", ii, data[nv2 + ii ], 1./data_err[nv2 + ii ], ratio,
-          data[nv2 + nt3amp + nvisamp + ii ], 1./data_err[nv2 + nt3amp + nvisamp + ii ]);
+      printf("N: %d Amp : %9f +/- %9f | S/N %3.1f | Phs : %9f +/- %9f\n", ii, data[nv2 + ii ], 1./data_err[nv2 + ii ], ratio,
+          data[nv2 + nt3amp + nvisamp + ii ] * 180./M_PI, 180./M_PI/data_err[nv2 + nt3amp + nvisamp + ii ]);
     if (ii == 0)
     {
       nmin2 = ratio;
       nmax2 = ratio;
-      nmin3 = 1./data_err[nv2 + nt3amp + nvisamp + ii ];
-      nmax3 = 1./data_err[nv2 + nt3amp + nvisamp + ii ];
+      nmin3 = 1./data_err[nv2 + nt3amp + nvisamp + ii ]* 180./M_PI;
+      nmax3 = 1./data_err[nv2 + nt3amp + nvisamp + ii ]* 180./M_PI;
     }
     if (ratio < nmin2)
       nmin2 = ratio;
     if (ratio > nmax2)
       nmax2 = ratio;
-    if (1./data_err[nv2 + nt3amp + nvisamp + ii ] < nmin3)
-      nmin3 = 1./data_err[nv2 + nt3amp + nvisamp + ii ];
-    if (1./data_err[nv2 + nt3amp + nvisamp + ii ] > nmax3)
-      nmax3 = 1./data_err[nv2 + nt3amp + nvisamp + ii ];
+    if (1./data_err[nv2 + nt3amp + nvisamp + ii ] * 180./M_PI< nmin3)
+      nmin3 = 1./data_err[nv2 + nt3amp + nvisamp + ii ]* 180./M_PI;
+    if (1./data_err[nv2 + nt3amp + nvisamp + ii ]* 180./M_PI > nmax3)
+      nmax3 = 1./data_err[nv2 + nt3amp + nvisamp + ii ]* 180./M_PI;
     tot2 += ratio / nt3;
-    tot3 += 1./data_err[nv2 + nt3amp + nvisamp + ii ] / nt3;
+    tot3 += 1./data_err[nv2 + nt3amp + nvisamp + ii ] * 180./M_PI/ nt3;
   }
 
   printf("SNR |   v2    |  t3amp    | t3phs    |\n");
@@ -1100,32 +1105,36 @@ void __stdcall VMEMEX( float *image , float *model_data )
   nfft_trafo(&user.p);
   
   for (int uu = 0; uu < nuv; uu++)
-    user.current_cvis[ uu ] = user.p.f[ uu ];
+    cvis[ uu ] = user.p.f[ uu ];
 
   // Powerpesctrum
   for (int i = 0; i < nv2; i++)
-      model_data[ i ] = abs2(user.current_cvis[ i ]);
+    model_data[ i ] = abs2(cvis[ i ]);
 
   //printf("Check - powerspectrum 0 == %f\n", model_data[0]);
   // Bispectrum
   for (int i = 0; i < nt3; i++)
   {
-      V0ab = cvis[ t3in1[ i ] ];
-      V0bc = cvis[ t3in2[ i ] ];
-      V0ca = cvis[ t3in3[ i ] ];
-      vtemp = V0ab * V0bc * conj(V0ca) * user.data_phasor[ i ];
-
-      model_data[ nv2 +  i ] = creal(vtemp);
-      model_data[ nv2 + nt3amp + nvisamp + i ] = cimag(vtemp);
+    V0ab = cvis[ t3in1[ i ] ];
+    V0bc = cvis[ t3in2[ i ] ];
+    V0ca = cvis[ t3in3[ i ] ];
+    vtemp = V0ab * V0bc * conj(V0ca) * user.data_phasor[ i ];
+    model_data[ nv2 +  i ] = creal(vtemp);
+    model_data[ nv2 + nt3amp + nvisamp + i ] = cimag(vtemp);
 
   }
 
+for (int i = 0; i < nvis; i++)
+  {
+    model_data[ nv2 + nt3amp + i ] = creal(cvis[i]);
+    model_data[ nv2 + nt3amp + nvisamp + nt3phi + i ] = cimag(cvis[i]);
+  }
 }
 
 void __stdcall VOPUS( float *dh , float *d_model_data )
 {
-  // Visible-to-Data differential transform
-  // Note current_derivcvis is dVisibility, dh is dImage, d_model_data is dData
+  // delta_visibility to delta_observable
+  // dh is dImage, d_model_data is dData
   float complex vtemp;
   float complex V0ab, V0bc, V0ca;
   float complex VISab, VISbc, VISca;
@@ -1139,7 +1148,7 @@ void __stdcall VOPUS( float *dh , float *d_model_data )
   nfft_trafo(&user.p);
 
   for (int u = 0; u < nuv; u++)
-        user.current_derivcvis[ u ] = user.p.f[ u ];
+    dcvis[ u ] = user.p.f[ u ];
 
   /* Powerspectrum */
   for (int i = 0; i < nv2; i++)
@@ -1162,6 +1171,13 @@ void __stdcall VOPUS( float *dh , float *d_model_data )
 
   }
 
+
+  for (int i = 0; i < nvis; i++)
+    {
+      d_model_data[ nv2 + nt3amp + i ] = creal(dcvis[i]);
+      d_model_data[ nv2 + nt3amp + nvisamp + nt3phi + i ] = cimag(dcvis[i]);
+    }
+  
 }
 
 void __stdcall VTROP( float *dh , float *dd )
@@ -1203,10 +1219,17 @@ void __stdcall VTROP( float *dh , float *dd )
 
   }
 
+  for (int i = 0; i < nvis; i++)
+    {
+      dcvis[ nv2 + nt3amp + i ] = creal(dcvis[i]);
+      dcvis[ nv2 + nt3amp + nvisamp + nt3phi + i ] = cimag(dcvis[i]);
+    }
+  
   for (int uu = 0; uu < nuv; uu++)
     user.p.f[ uu ] = dcvis[ uu ];
   
   nfft_adjoint(&user.p); 
+
   for (int ii = 0; ii < user.iNX * user.iNX; ii++)
       dh[ ii ] = creal(user.p.f_hat[ ii ]);
 
@@ -1996,9 +2019,9 @@ int redisplay(float* image, USER *user, float displaypower, int contour)
 		    
 		    cpgslct(user->idt3phi);
 		    cpgsci(2);
-		    cpgpt1( r , data[nv2 + nt3amp + nvisamp +i] , 0);
-		    errlow = data[nv2 + nt3amp + nvisamp +i] + 1./data_err[nv2 + nt3amp + nvisamp +i] ;
-		    errhi = data[nv2 + nt3amp + nvisamp +i] - 1./data_err[nv2 + nt3amp + nvisamp +i];
+		    cpgpt1( r , data[nv2 + nt3amp + nvisamp +i] * 180. / M_PI, 0);
+		    errlow = (data[nv2 + nt3amp + nvisamp +i] + 1./data_err[nv2 + nt3amp + nvisamp +i]) * 180. / M_PI;
+		    errhi = (data[nv2 + nt3amp + nvisamp +i] - 1./data_err[nv2 + nt3amp + nvisamp +i]) * 180. / M_PI;
 		    cpgerry( 1, &r, &errlow , &errhi , 1.0);
 		    
 		    if(1./data_err[nv2 +i] < 1e2)
@@ -2098,8 +2121,7 @@ int dispuv( char* dev)
 int get_oi_fits_data(RECONST_PARAMETERS* reconst_parameters, int* status)
 {
  double wavmin, wavmax, timemin, timemax;
- import_single_epoch_oifits(reconst_parameters->datafile, 1, 1, 1, 1, 1,
-			    0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 0, 1000, 1,
+ import_single_epoch_oifits(reconst_parameters->datafile, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 0, 1000, 1,
 			    &wavmin, &wavmax,&timemin, &timemax);
 
 }
