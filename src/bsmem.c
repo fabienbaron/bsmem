@@ -701,7 +701,7 @@ int set_memsys_dataspace( float *st , int *kb  , RECONST_PARAMETERS *reconst_par
   // ( cf PASP paper ) - in particular, closures may be >180
   int i;
   int warn_extrapolation = 0;
-  float err_pow, err_rad, err_tan, err_abs, err_phi=0;
+  float err_pow, err_rad, err_tan, err_abs, err_phi=0, bias=1;
   float pow1, powerr1, pow2, powerr2, pow3, powerr3, sqamp1, sqamp2, sqamp3, sqamperr1, sqamperr2, sqamperr3;
   printf("Loading data into memory\n");
 
@@ -771,7 +771,7 @@ int set_memsys_dataspace( float *st , int *kb  , RECONST_PARAMETERS *reconst_par
 	err_tan = 1./( sqrt(0.5 * square( err_abs )   * square(1.- exp(-2.*square(err_phi)))
 			    + 0.5 * square( data[nv2 + i ]) * (1.- exp(-2.*square(err_phi))) ) );
 
-	st[ kb[ 20 ]+ nv2 + 2 * i ] = data[nv2 + i ] * (2.- exp( - 0.5*square(err_phi) ))  ;
+	bias = (2.- exp( - 0.5*square(err_phi) ))  ;
       }
     else
       {
@@ -780,17 +780,20 @@ int set_memsys_dataspace( float *st , int *kb  , RECONST_PARAMETERS *reconst_par
 	  printf("Bispectrum noise:\tClassic elliptic approximation \n");
 	err_rad = data_err[nv2 + i ] ;
 	err_tan = data_err[nv2 + nt3amp + nvisamp + i ] / fabs(data[nv2 + i ]);
-	st[ kb[ 20 ] + nv2 + 2 * i ] = data[nv2 + i ];
+	bias = 1.;
+	
       }
 
     //
-    // Set bispectrum errors
+    // Set data + errors in minimizer memory
     //
-    st[ kb[ 21 ] + nv2 + 2 * i ] = err_rad;
-    st[ kb[ 21 ] + nv2 + 1 + 2 * i ] = err_tan;
-    st[ kb[ 20 ] + nv2 + 1 + 2 * i ] = 0.0;
-
+    st[ kb[ 20 ] + nv2 + nt3amp + nvisamp + i ] = 0.0;
+    st[ kb[ 20 ] + nv2 + i ] = data[nv2 + i ] * bias;
+    st[ kb[ 21 ] + nv2 + i ] = err_rad;
+    st[ kb[ 21 ] + nv2 + nt3amp + nvisamp + i ] = err_tan;
   }
+
+
   printf("Data loaded in memory\n");
   return SUCCESS;
 }
@@ -1106,17 +1109,17 @@ void __stdcall VMEMEX( float *image , float *model_data )
       V0ca = cvis[ t3in3[ i ] ];
       vtemp = V0ab * V0bc * conj(V0ca) * user.data_phasor[ i ];
 
-      model_data[ nv2 + 2 * i ] = creal(vtemp);
-      model_data[ nv2 + 2 * i + 1 ] = cimag(vtemp);
+      model_data[ nv2 +  i ] = creal(vtemp);
+      model_data[ nv2 + nt3amp + nvisamp + i ] = cimag(vtemp);
 
   }
 
 }
 
-void __stdcall VOPUS( float *dh , float *dd )
+void __stdcall VOPUS( float *dh , float *d_model_data )
 {
   // Visible-to-Data differential transform
-  // Note current_derivcvis is dVisibility, dh is dImage, dd is dData
+  // Note current_derivcvis is dVisibility, dh is dImage, d_model_data is dData
   float complex vtemp;
   float complex V0ab, V0bc, V0ca;
   float complex VISab, VISbc, VISca;
@@ -1134,8 +1137,7 @@ void __stdcall VOPUS( float *dh , float *dd )
 
   /* Powerspectrum */
   for (int i = 0; i < nv2; i++)
-      dd[ i ] = 2.0 *
-	(creal(dcvis[ i ]) * creal(cvis[ i ]) + cimag(dcvis[ i ]) * cimag(cvis[ i ]));
+      d_model_data[ i ] = 2.0 *	(creal(dcvis[ i ]) * creal(cvis[ i ]) + cimag(dcvis[ i ]) * cimag(cvis[ i ]));
 
 
   /* Bispectrum */
@@ -1149,8 +1151,8 @@ void __stdcall VOPUS( float *dh , float *dd )
       VISca = dcvis[ t3in3[ i ] ];
       /* differential response calculation */
       vtemp = user.data_phasor[ i ] * (VISab * V0bc * conj(V0ca) + VISbc * conj(V0ca) * V0ab + conj(VISca) * V0ab * V0bc);
-      dd[ nv2 + 2 * i ] = creal(vtemp);
-      dd[ nv2 + 2 * i + 1 ] = cimag(vtemp);
+      d_model_data[ nv2 + i ] = creal(vtemp);
+      d_model_data[ nv2 + nt3amp + nvisamp + i ] = cimag(vtemp);
 
   }
 
@@ -1181,7 +1183,7 @@ void __stdcall VTROP( float *dh , float *dd )
       V0ca = cvis[t3in3[i]];
 
       /* input bispectrum differential */
-      t3 = (dd[ nv2 + 2 * i ] + I * dd[ nv2 + 2 * i + 1 ]) * conj(user.data_phasor[ i ]);
+      t3 = (dd[ nv2 + i ] + I * dd[ nv2 + nt3amp + nvisamp + i ]) * conj(user.data_phasor[ i ]);
 
       /* differential response calculation */
       VISab = t3 * V0bc * V0ca;
@@ -1198,8 +1200,7 @@ void __stdcall VTROP( float *dh , float *dd )
   for (int uu = 0; uu < nuv; uu++)
     user.p.f[ uu ] = dcvis[ uu ];
   
-  nfft_adjoint(&user.p);
-  
+  nfft_adjoint(&user.p); 
   for (int ii = 0; ii < user.iNX * user.iNX; ii++)
       dh[ ii ] = creal(user.p.f_hat[ ii ]);
 
