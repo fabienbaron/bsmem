@@ -215,7 +215,7 @@ int bsmem( int argc , char** argv )
 
   /* Convert exp( -I*closure phase ) to Real/Imaginary parts */
   for (ii = 0; ii < nt3; ii++)
-    user.data_phasor[ ii ] = cexp(-I * data[ nv2 + nt3amp + ii ] );
+    user.data_phasor[ ii ] = cexp(-I * data[ nv2 + nt3amp + nvisamp + ii ] );
 
   /* Set up MEMSYS data area*/
   set_memsys_dataspace(st, kb,  &reconst_parameters);
@@ -764,7 +764,7 @@ int set_memsys_dataspace( float *st , int *kb  , RECONST_PARAMETERS *reconst_par
 	  printf("Bispectrum noise:\tImproved elliptic approximation \n");
 
 	err_abs = 1./data_err[nv2 + i ];
-	err_phi = 1./data_err[nv2 + nt3amp + i ];
+	err_phi = 1./data_err[nv2 + nt3amp + nvisamp + i ];
 	err_rad = 1./( sqrt(0.5 * square( err_abs )   * square(1.+ exp(-2.*square(err_phi)))
 			    + 0.5 * square( data[nv2 + i ]) * square(1.- exp(-square(err_phi)))  ) );
 
@@ -779,7 +779,7 @@ int set_memsys_dataspace( float *st , int *kb  , RECONST_PARAMETERS *reconst_par
 	if (i == 0)
 	  printf("Bispectrum noise:\tClassic elliptic approximation \n");
 	err_rad = data_err[nv2 + i ] ;
-	err_tan = data_err[nv2 + nt3amp + i ] / fabs(data[nv2 + i ]);
+	err_tan = data_err[nv2 + nt3amp + nvisamp + i ] / fabs(data[nv2 + i ]);
 	st[ kb[ 20 ] + nv2 + 2 * i ] = data[nv2 + i ];
       }
 
@@ -843,24 +843,24 @@ void display_oifits_info( )
     ratio = fabs(data[nv2 + ii ] * data_err[nv2 + ii ]);
     if ((tempstr == 'y') || (tempstr == 'Y'))
       printf("N: %d Amp : %9f +/-%9f | S/N %3.1f | Phs : %9f +/-%9f\n", ii, data[nv2 + ii ], 1./data_err[nv2 + ii ], ratio,
-          data[nv2 + nt3amp + ii ], 1./data_err[nv2 + nt3amp + ii ]);
+          data[nv2 + nt3amp + nvisamp + ii ], 1./data_err[nv2 + nt3amp + nvisamp + ii ]);
     if (ii == 0)
     {
       nmin2 = ratio;
       nmax2 = ratio;
-      nmin3 = 1./data_err[nv2 + nt3amp + ii ];
-      nmax3 = 1./data_err[nv2 + nt3amp + ii ];
+      nmin3 = 1./data_err[nv2 + nt3amp + nvisamp + ii ];
+      nmax3 = 1./data_err[nv2 + nt3amp + nvisamp + ii ];
     }
     if (ratio < nmin2)
       nmin2 = ratio;
     if (ratio > nmax2)
       nmax2 = ratio;
-    if (1./data_err[nv2 + nt3amp + ii ] < nmin3)
-      nmin3 = 1./data_err[nv2 + nt3amp + ii ];
-    if (1./data_err[nv2 + nt3amp + ii ] > nmax3)
-      nmax3 = 1./data_err[nv2 + nt3amp + ii ];
+    if (1./data_err[nv2 + nt3amp + nvisamp + ii ] < nmin3)
+      nmin3 = 1./data_err[nv2 + nt3amp + nvisamp + ii ];
+    if (1./data_err[nv2 + nt3amp + nvisamp + ii ] > nmax3)
+      nmax3 = 1./data_err[nv2 + nt3amp + nvisamp + ii ];
     tot2 += ratio / nt3;
-    tot3 += 1./data_err[nv2 + nt3amp + ii ] / nt3;
+    tot3 += 1./data_err[nv2 + nt3amp + nvisamp + ii ] / nt3;
   }
 
   printf("SNR |   v2    |  t3amp    | t3phs    |\n");
@@ -1989,9 +1989,9 @@ int redisplay(float* image, USER *user, float displaypower, int contour)
 		    
 		    cpgslct(user->idt3phi);
 		    cpgsci(2);
-		    cpgpt1( r , data[nv2 + nt3amp +i] , 0);
-		    errlow = data[nv2 + nt3amp +i] + 1./data_err[nv2 + nt3amp +i] ;
-		    errhi = data[nv2 + nt3amp +i] - 1./data_err[nv2 + nt3amp +i];
+		    cpgpt1( r , data[nv2 + nt3amp + nvisamp +i] , 0);
+		    errlow = data[nv2 + nt3amp + nvisamp +i] + 1./data_err[nv2 + nt3amp + nvisamp +i] ;
+		    errhi = data[nv2 + nt3amp + nvisamp +i] - 1./data_err[nv2 + nt3amp + nvisamp +i];
 		    cpgerry( 1, &r, &errlow , &errhi , 1.0);
 		    
 		    if(1./data_err[nv2 +i] < 1e2)
