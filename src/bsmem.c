@@ -2147,3 +2147,6 @@ int read_fits_image(char* fname, float* img, int *n, float* xyint, char* source,
 
 	return *status;
 }
+
+
+#include "oifits.c"

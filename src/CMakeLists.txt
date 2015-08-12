@@ -17,7 +17,7 @@ INCLUDE_DIRECTORIES(${X11_INCLUDE_DIRS})
 LIST(APPEND CMAKE_C_FLAGS "-march=native -O2 -pipe -std=c11")
 #LIST(APPEND CMAKE_C_FLAGS "-ggdb -fomit-frame-pointer -pipe")
 # Collect the source:
-FILE(GLOB SOURCE *.f bsmem.c chkmalloc.c free_fits.c read_fits.c)
+FILE(GLOB SOURCE *.f bsmem.c free_fits.c read_fits.c)
 
 add_executable(bsmem ${SOURCE})
 SET_TARGET_PROPERTIES(bsmem PROPERTIES LINKER_LANGUAGE C)
