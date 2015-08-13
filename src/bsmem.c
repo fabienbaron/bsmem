@@ -716,7 +716,7 @@ int set_memsys_dataspace( float *st , int *kb  , RECONST_PARAMETERS *reconst_par
   float err_pow, err_rad, err_tan, err_abs, err_phi=0, bias=1;
   float pow1, powerr1, pow2, powerr2, pow3, powerr3, sqamp1, sqamp2, sqamp3, sqamperr1, sqamperr2, sqamperr3;
   printf("Loading data into memory\n");
-
+      
   for (i = 0; i < nv2; i++)
   {
     st[ kb[ 20 ] + i ] = data[ i ];
@@ -1282,7 +1282,7 @@ void __stdcall VTROP( float *dimage , float *d_model_data )
   nfft_adjoint(&user.p); // adjoint nfft
 
   for (int ii = 0; ii < user.iNX * user.iNX; ii++)
-    dimage[ ii ] = creal(user.p.f_hat[ ii ]) > 0. ? creal(user.p.f_hat[ ii ]):1e-8;  // image is in the real plane
+    dimage[ ii ] = creal(user.p.f_hat[ ii ]) > 1e-8 ? creal(user.p.f_hat[ ii ]):1e-8;  // image is in the real plane
 
 }
 
@@ -1656,7 +1656,7 @@ void reset_default_parameters(RECONST_PARAMETERS* reconst_parameters)
 	reconst_parameters->verbose = 1;
 	reconst_parameters->noui = 0;
 	reconst_parameters->t3errtype = 0;
-	reconst_parameters->fluxerr = 1e-2;
+	reconst_parameters->fluxerr = 1e-3;
 	reconst_parameters->forced_extrapolation = 0;
 	reconst_parameters->minband = -1. ;
 	reconst_parameters->maxband = -1. ;
@@ -2192,8 +2192,9 @@ int dispuv( char* dev)
 int get_oi_fits_data(RECONST_PARAMETERS* reconst_parameters, int* status)
 {
  double wavmin, wavmax, timemin, timemax;
+ 
  import_single_epoch_oifits(reconst_parameters->datafile, 0, 0, 0, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 0, 1000, 1,
-			    &wavmin, &wavmax,&timemin, &timemax);
+			    &wavmin, &wavmax,&timemin, &timemax, 1, 1.0, reconst_parameters->fluxerr);
 
 }
 
@@ -2241,4 +2242,4 @@ int read_fits_image(char* fname, float* img, int *n, float* xyint, char* source,
 }
 
 
-#include "oifits.c"
+#include "extract_oifits.c"

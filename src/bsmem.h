@@ -125,7 +125,8 @@ int read_fits_image(char* fname, float* img, int* n, float* xyint, char* source,
 int import_single_epoch_oifits( char *filename, bool use_v2, bool use_t3amp, bool use_t3phi, bool use_visamp, bool use_visphi,
                                double v2a, double v2s, double t3ampa, double t3amps, double t3phia, double t3phis,
                                double visampa, double visamps, double visphia, double visphis, double fluxs, double cwhm,
-				double uvtol, int nwavr, double *wavmin, double *wavmax, double *timemin, double *timemax);
+				double uvtol, int nwavr, double *wavmin, double *wavmax, double *timemin, double *timemax,
+				bool use_zeroflux, double zeroflux, double zeroflux_err);
 
 /* Error exit handling */
 #define CALL(x) {if((CALLvalue = (x))<0) return CALLvalue;}
