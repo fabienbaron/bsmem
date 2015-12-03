@@ -814,12 +814,12 @@ int set_memsys_dataspace( float *st , int *kb  , RECONST_PARAMETERS *reconst_par
       err_rad = data_err[nv2 + nt3amp + i ] ;
       err_tan = data_err[nv2 + nt3amp + nvisamp + nt3phi + i ] / fabs(data[nv2 + nt3amp + i ]);
       
-      // visamp
-      st[ kb[ 20 ] + nv2 + nt3amp + i ] = data[nv2 + nt3amp + i ];
+      // Re(cvis)
+      st[ kb[ 20 ] + nv2 + nt3amp + i ] = data[nv2 + nt3amp + i ] * cos(data_err[nv2 + nt3amp + nvisamp + nt3phi + i ]);
       st[ kb[ 21 ] + nv2 + nt3amp + i ] = err_rad;
 
-      // visphi
-      st[ kb[ 20 ] + nv2 + nt3amp + nvisamp + nt3phi + i ] = 0;
+      // Im(cvis)
+      st[ kb[ 20 ] + nv2 + nt3amp + nvisamp + nt3phi + i ] = data[nv2 + nt3amp + i ] * sin(data_err[nv2 + nt3amp + nvisamp + nt3phi + i ]);
       st[ kb[ 21 ] + nv2 + nt3amp + nvisamp + nt3phi + i ] = err_tan;
   }
 
