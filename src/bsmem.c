@@ -669,18 +669,23 @@ void autosize( float *st , int *kb , RECONST_PARAMETERS *reconst_parameters )
   float ftmp;
 
   /* Find maximum UV coord */
-  float max_uv = 0.0;
-  float min_uv = 1e20;
+  float min_uv, max_uv;
   for (i = 1; i < nuv; i++)
   {
-      ftmp = u[i]*u[i] + v[i]*v[i];
-      if (ftmp > max_uv)
+    ftmp = u[i]*u[i] + v[i]*v[i];
+    if(i == 1)
+      {
+	min_uv = ftmp;
+	max_uv = ftmp;
+      }
+     if (ftmp > max_uv)
         max_uv = ftmp;
       if (ftmp < min_uv)
         min_uv = ftmp;
   }
   max_uv = sqrt(max_uv);
   min_uv = sqrt(min_uv);
+
   printf("UV range:\t\t%8.0f - %8.0f wavelengths \n", min_uv, max_uv);
 
   /* Automatic choice of pixellation if xyint <= 0. UV cut off such that
@@ -2193,7 +2198,7 @@ int get_oi_fits_data(RECONST_PARAMETERS* reconst_parameters, int* status)
 {
  double wavmin, wavmax, timemin, timemax;
  
- import_single_epoch_oifits(reconst_parameters->datafile, 0, 0, 0, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 0, 1000, 1,
+ import_single_epoch_oifits(reconst_parameters->datafile, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 0, 1000, 1,
 			    &wavmin, &wavmax,&timemin, &timemax, 1, 1.0, reconst_parameters->fluxerr);
 
 }
