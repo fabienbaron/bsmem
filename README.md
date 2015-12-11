@@ -1,5 +1,7 @@
 BSMEM version 2.0
 
+CURRENTLY BROKEN -- DO NOT USE
+
 ## Licensing
 
 Portions of BSMEM are licensed under GPL, LGPL and proprietary license
