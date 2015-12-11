@@ -1287,8 +1287,7 @@ void __stdcall VTROP( float *dimage , float *d_model_data )
   nfft_adjoint(&user.p); // adjoint nfft
 
   for (int ii = 0; ii < user.iNX * user.iNX; ii++)
-    dimage[ ii ] = creal(user.p.f_hat[ ii ]) > 1e-8 ? creal(user.p.f_hat[ ii ]):1e-8;  // image is in the real plane
-
+    dimage[ ii ] =  creal(user.p.f_hat[ ii ]);  
 }
 
 
@@ -2200,7 +2199,6 @@ int get_oi_fits_data(RECONST_PARAMETERS* reconst_parameters, int* status)
  
  import_single_epoch_oifits(reconst_parameters->datafile, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 0, 1000, 1,
 			    &wavmin, &wavmax,&timemin, &timemax, 1, 1.0, reconst_parameters->fluxerr);
-
 }
 
 int read_fits_image(char* fname, float* img, int *n, float* xyint, char* source, char* datafile, int* status)
