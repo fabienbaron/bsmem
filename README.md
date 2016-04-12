@@ -3,7 +3,7 @@ BSMEM version 2.0
 ## Licensing
 
 Portions of BSMEM are licensed under GPL, LGPL and proprietary license
-agreements.
+agreements. Use of BSMEM is strongly discouraged, and the code is made available for purely historical reasons. Instead of BSMEM, it is strongly recommended to use MIRA by Eric Thiebault, PAINTER by Andre Ferrari, or [SQUEEZE](https://github.com/fabienbaron/squeeze) by Fabien Baron.
 
 ## Installing
 
