@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8) 
+cmake_minimum_required(VERSION 2.8)
 
 FIND_PACKAGE(CFITSIO REQUIRED)
 FIND_PACKAGE(FFTW3 REQUIRED)
@@ -14,7 +14,7 @@ INCLUDE_DIRECTORIES(${X11_INCLUDE_DIRS})
 
 # Enable optimization.
 #LIST(APPEND CMAKE_Fortran_FLAGS "-O5")
-LIST(APPEND CMAKE_C_FLAGS "-march=native -O2 -pipe -std=c11")
+LIST(APPEND CMAKE_C_FLAGS "-ggdb -fomit-frame-pointer -march=native -O2 -pipe -std=c11")
 #LIST(APPEND CMAKE_C_FLAGS "-ggdb -fomit-frame-pointer -pipe")
 # Collect the source:
 FILE(GLOB SOURCE *.f bsmem.c free_fits.c read_fits.c)
@@ -27,4 +27,3 @@ target_link_libraries(bsmem ${CFITSIO_LIBRARIES} ${FFTW3_LIBRARIES} ${PGPLOT_LIB
 # Set install directory
 set_property(TARGET bsmem PROPERTY INSTALL_RPATH_USE_LINK_PATH TRUE)
 INSTALL(TARGETS bsmem DESTINATION bin)
-
